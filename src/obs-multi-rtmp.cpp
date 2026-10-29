@@ -8,9 +8,11 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QIODevice>
+#include <QPointer>
 
 #include "push-widget.h"
 #include "plugin-support.h"
+#include "stats-integration.h"
 
 #include "output-config.h"
 
@@ -611,6 +613,15 @@ bool obs_module_load()
         dock
     );
 
+    InstallStatsIntegration([dock = QPointer<MultiOutputWidget>(dock)]() {
+        std::vector<StatsTargetInfo> targets;
+        if (!dock)
+            return targets;
+        for (auto x : dock->GetAllPushWidgets())
+            targets.push_back(x->GetStatsInfo());
+        return targets;
+    });
+
     blog(LOG_INFO, TAG "version: %s by SoraYuki https://github.com/sorayuki/obs-multi-rtmp/", PLUGIN_VERSION);
 
     obs_frontend_add_event_callback(
@@ -622,6 +633,7 @@ bool obs_module_load()
 
             if (event == obs_frontend_event::OBS_FRONTEND_EVENT_EXIT)
             {   
+                UninstallStatsIntegration();
                 dock->SaveConfig();
             }
             else if (event == obs_frontend_event::OBS_FRONTEND_EVENT_PROFILE_CHANGED)
@@ -632,6 +644,11 @@ bool obs_module_load()
     );
 
     return true;
+}
+
+void obs_module_unload()
+{
+    UninstallStatsIntegration();
 }
 
 const char *obs_module_description(void)

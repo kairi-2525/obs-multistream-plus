@@ -38,14 +38,16 @@ if (( ! (${skips[(Ie)all]} + ${skips[(Ie)deps]}) )) {
   local dist_version
   read -r dist_version <<< "$(source /etc/os-release; print "${VERSION_ID}")"
 
-  # Ubuntu 26.04 splits the OBS development files out of obs-studio.
+  # Build against the OBS Studio PPA, whose obs-studio package includes the development files. It has OBS 33 for
+  # Ubuntu 26.04, which itself ships OBS 32.1; Ubuntu 24.04 only gets up to OBS 32.2 there.
   local -a obs_packages=(build-essential libgles2-mesa-dev libsimde-dev obs-studio)
   if is-at-least 26.04 ${dist_version}; then
-    obs_packages+=(libobs-dev)
-  else
-    sudo add-apt-repository --yes ppa:obsproject/obs-studio
-    sudo apt update
+    # The 26.04 runner images limit apt to amd64v3 package indices, which the PPA doesn't publish. This has to apply
+    # to every later apt call too, or apt wants to downgrade the installed amd64v3 packages.
+    print 'APT::Architecture-Variants "";' | sudo tee /etc/apt/apt.conf.d/99no-architecture-variants > /dev/null
   fi
+  sudo add-apt-repository --yes ppa:obsproject/obs-studio
+  sudo apt update
 
   sudo apt-get install ${apt_args} ${obs_packages}
 

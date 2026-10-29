@@ -4,6 +4,18 @@ include_guard(GLOBAL)
 
 include(helpers_common)
 
+option(OBS_PLUGIN_LEGACY_LAYOUT "Install to obs-plugins even when building for OBS Studio 33 or newer" OFF)
+
+# _get_plugin_install_dir: OBS Studio 33 loads third-party plugins from obs-modules/plugins and labels those found in the
+# older obs-plugins directories as legacy, which earlier versions exclusively search.
+function(_get_plugin_install_dir out_var)
+  if(libobs_VERSION VERSION_GREATER_EQUAL 33 AND NOT OBS_PLUGIN_LEGACY_LAYOUT)
+    set(${out_var} obs-modules/plugins PARENT_SCOPE)
+  else()
+    set(${out_var} obs-plugins PARENT_SCOPE)
+  endif()
+endfunction()
+
 # set_target_properties_plugin: Set target properties for use in obs-studio
 function(set_target_properties_plugin target)
   set(options "")
@@ -23,10 +35,13 @@ function(set_target_properties_plugin target)
     PROPERTIES VERSION ${PLUGIN_VERSION} SOVERSION ${PLUGIN_VERSION_MAJOR} PREFIX ""
   )
 
+  _get_plugin_install_dir(_plugin_dir)
+  message(STATUS "Installing ${target} to ${CMAKE_INSTALL_LIBDIR}/${_plugin_dir} (libobs ${libobs_VERSION})")
+
   install(
     TARGETS ${target}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/obs-plugins
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/${_plugin_dir}
   )
 
   if(TARGET plugin-support)
@@ -68,9 +83,10 @@ function(target_install_resources target)
       source_group("Resources/${relative_path}" FILES "${data_file}")
     endforeach()
 
+    _get_plugin_install_dir(_plugin_dir)
     install(
       DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/data/"
-      DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/obs/obs-plugins/${target}
+      DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/obs/${_plugin_dir}/${target}
       USE_SOURCE_PERMISSIONS
     )
 
@@ -91,7 +107,8 @@ endfunction()
 function(target_add_resource target resource)
   message(DEBUG "Add resource '${resource}' to target ${target} at destination '${target_destination}'...")
 
-  install(FILES "${resource}" DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/obs/obs-plugins/${target})
+  _get_plugin_install_dir(_plugin_dir)
+  install(FILES "${resource}" DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/obs/${_plugin_dir}/${target})
 
   add_custom_command(
     TARGET ${target}

@@ -62,12 +62,19 @@ function(_setup_obs_studio)
     set(_cmake_extra "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
   endif()
 
+  # OBS Studio 33 renamed ENABLE_PLUGINS to ENABLE_CORE_MODULES (ENABLE_PLUGINS is deprecated, removal planned for 34)
+  if(_obs_version VERSION_GREATER_EQUAL 33.0.0)
+    set(_disable_core_modules -DENABLE_CORE_MODULES:BOOL=OFF)
+  else()
+    set(_disable_core_modules -DENABLE_PLUGINS:BOOL=OFF)
+  endif()
+
   message(STATUS "Configure ${label} (${arch})")
   execute_process(
     COMMAND
       "${CMAKE_COMMAND}" -S "${dependencies_dir}/${_obs_destination}" -B
       "${dependencies_dir}/${_obs_destination}/build_${arch}" -G ${_cmake_generator} "${_cmake_arch}"
-      -DOBS_CMAKE_VERSION:STRING=3.0.0 -DENABLE_PLUGINS:BOOL=OFF -DENABLE_FRONTEND:BOOL=OFF
+      -DOBS_CMAKE_VERSION:STRING=3.0.0 ${_disable_core_modules} -DENABLE_FRONTEND:BOOL=OFF
       -DOBS_VERSION_OVERRIDE:STRING=${_obs_version} "-DCMAKE_PREFIX_PATH='${CMAKE_PREFIX_PATH}'" ${_is_fresh}
       ${_cmake_extra}
     RESULT_VARIABLE _process_result

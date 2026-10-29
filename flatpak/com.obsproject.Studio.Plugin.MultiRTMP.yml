@@ -2,7 +2,7 @@ id: com.obsproject.Studio.Plugin.MultiRTMP
 branch: stable
 runtime: com.obsproject.Studio
 runtime-version: stable
-sdk: org.freedesktop.Sdk//25.08
+sdk: org.freedesktop.Sdk//26.08
 build-extension: true
 separate-locales: false
 build-options:
@@ -16,6 +16,9 @@ modules:
       - -DCMAKE_INSTALL_LIBDIR=lib
       - -DENABLE_FRONTEND_API=ON
       - -DENABLE_QT=ON
+      # OBS 33's Flatpak looks for obs-modules/plugins data under share/obs-modules,
+      # which the extension point doesn't merge, so keep the obs-plugins layout.
+      - -DOBS_PLUGIN_LEGACY_LAYOUT=ON
     post-install:
       - install -Dm644 ${FLATPAK_BUILDER_BUILDDIR}/${FLATPAK_ID}.metainfo.xml ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml
     sources:

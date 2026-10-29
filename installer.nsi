@@ -45,6 +45,8 @@ Page instfiles
 
 Section
 SetOutPath "$INSTDIR"
+; Earlier versions installed the binaries to obs-multi-rtmp\bin\64bit, which OBS 33 treats as legacy.
+RMDir /r "$INSTDIR\obs-multi-rtmp\bin"
 File /r "${PLUGIN_SOURCE_DIR}"
 SectionEnd
 
