@@ -5,12 +5,19 @@
 #include <type_traits>
 #include <utility>
 
+#include <obs.h>
+
 const char * const OBS_STREAMING_ENC_PLACEHOLDER = "<OBS_STREAMING_ENCODER>";
 const char * const OBS_RECORDING_ENC_PLACEHOLDER = "<OBS_RECORDING_ENCODER>";
 
 inline bool IsSpecialEncoder(const std::string_view& encoderId) {
     return encoderId == OBS_STREAMING_ENC_PLACEHOLDER || encoderId == OBS_RECORDING_ENC_PLACEHOLDER;
 }
+
+// OBS saves the bindings of every frontend hotkey into the current profile's
+// [Hotkeys] section, but only loads its own back. Applies the saved bindings
+// of the hotkey registered under `name`, or none if that profile has none.
+void LoadHotkeyBindings(obs_hotkey_id id, const char* name);
 
 template <typename T>
 class WeakThis

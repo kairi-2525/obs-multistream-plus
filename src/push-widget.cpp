@@ -725,9 +725,10 @@ public:
         LoadConfig();
         UpdateStatusDot();
 
+        auto startName = "obs-multi-rtmp.start." + targetid_;
         auto startDesc = std::string(obs_module_text("Hotkey.StartTarget")) + " - " + config_->name;
         startHotkeyId_ = obs_hotkey_register_frontend(
-            ("obs-multi-rtmp.start." + targetid_).c_str(),
+            startName.c_str(),
             startDesc.c_str(),
             [](void* data, obs_hotkey_id, obs_hotkey_t*, bool pressed) {
                 if (!pressed)
@@ -736,10 +737,12 @@ public:
             },
             this
         );
+        LoadHotkeyBindings(startHotkeyId_, startName.c_str());
 
+        auto stopName = "obs-multi-rtmp.stop." + targetid_;
         auto stopDesc = std::string(obs_module_text("Hotkey.StopTarget")) + " - " + config_->name;
         stopHotkeyId_ = obs_hotkey_register_frontend(
-            ("obs-multi-rtmp.stop." + targetid_).c_str(),
+            stopName.c_str(),
             stopDesc.c_str(),
             [](void* data, obs_hotkey_id, obs_hotkey_t*, bool pressed) {
                 if (!pressed)
@@ -748,6 +751,7 @@ public:
             },
             this
         );
+        LoadHotkeyBindings(stopHotkeyId_, stopName.c_str());
     }
 
     ~PushWidgetImpl()
