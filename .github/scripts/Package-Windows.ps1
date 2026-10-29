@@ -73,9 +73,13 @@ function Package {
     }
     $zipf = New-Object System.IO.Compression.ZipArchive -ArgumentList ([System.IO.File]::OpenWrite("${ProjectRoot}/release/${OutputName}.zip"), [System.IO.Compression.ZipArchiveMode]::Create)
     function AddDirectory{
-        param( [string] $DestDir, [string] $SourceDir )
+        param( [string] $DestDir, [string] $SourceDir, [switch] $FilesOnly )
         Log-Information "Adding directory: ${SourceDir} to ${DestDir}"
-        $Entries = Get-ChildItem -Path $SourceDir -Recurse
+        if ( $FilesOnly ) {
+            $Entries = Get-ChildItem -Path $SourceDir -File
+        } else {
+            $Entries = Get-ChildItem -Path $SourceDir -Recurse
+        }
         foreach( $Entry in $Entries ) {
             $RelativePath = $Entry.FullName.Substring($SourceDir.Length).TrimStart('\') -replace '\\', '/'
             $ZipEntryPath = "$DestDir/${RelativePath}"
@@ -90,7 +94,9 @@ function Package {
             }
         }
     }
-    AddDirectory "obs-plugins/64bit" "${ProjectRoot}/release/${Configuration}/${ProductName}/bin/64bit"
+    # The binaries sit next to the data folder (OBS 33 plugin layout); the zip keeps the
+    # obs-plugins/64bit layout for copying into an OBS installation folder.
+    AddDirectory "obs-plugins/64bit" "${ProjectRoot}/release/${Configuration}/${ProductName}" -FilesOnly
     AddDirectory "data/obs-plugins/${ProductName}" "${ProjectRoot}/release/${Configuration}/${ProductName}/data"
     $zipf.Dispose()
     Log-Group
