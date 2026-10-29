@@ -3,17 +3,13 @@
 
 #include "json.hpp"
 
+#include <QLocale>
+
 namespace {
     QString LoadCString(const char* s) {
         if (!s)
             return {};
         return QString::fromUtf8(s, strlen(s));
-    }
-
-    template<class T>
-    QString to_qstring(T x) {
-        auto s = std::to_wstring(x);
-        return QString::fromStdWString(s);
     }
 
 
@@ -109,14 +105,19 @@ namespace {
                 case OBS_PROPERTY_INT:
                 {
                     auto le = new QLineEditWithEye(updater, parent, false);
-                    le->edit()->setValidator(new QIntValidator(le));
+                    // Numbers are shown and parsed in the C locale, see LoadData/SaveData.
+                    auto validator = new QIntValidator(le);
+                    validator->setLocale(QLocale::c());
+                    le->edit()->setValidator(validator);
                     ctrl = le;
                     break;
                 }
                 case OBS_PROPERTY_FLOAT:
                 {
                     auto le = new QLineEditWithEye(updater, parent, false);
-                    le->edit()->setValidator(new QDoubleValidator(le));
+                    auto validator = new QDoubleValidator(le);
+                    validator->setLocale(QLocale::c());
+                    le->edit()->setValidator(validator);
                     ctrl = le;
                     break;
                 }
@@ -196,13 +197,13 @@ namespace {
             case OBS_PROPERTY_INT:
             {
                 auto val = obs_data_get_int(data, name.c_str());
-                static_cast<QLineEditWithEye*>(ctrl)->edit()->setText(to_qstring(val));
+                static_cast<QLineEditWithEye*>(ctrl)->edit()->setText(QString::number(val));
                 break;
             }
             case OBS_PROPERTY_FLOAT:
             {
                 auto val = obs_data_get_double(data, name.c_str());
-                static_cast<QLineEditWithEye*>(ctrl)->edit()->setText(to_qstring(val));
+                static_cast<QLineEditWithEye*>(ctrl)->edit()->setText(QString::number(val, 'g', 15));
                 break;
             }
             case OBS_PROPERTY_TEXT:
@@ -243,20 +244,18 @@ namespace {
             }
             case OBS_PROPERTY_INT:
             {
-                try {
-                    auto val = tostdu8(static_cast<QLineEditWithEye*>(ctrl)->edit()->text());
-                    obs_data_set_int(data, name.c_str(), std::stoi(val));
-                } catch(...) {
-                }
+                bool ok = false;
+                auto val = static_cast<QLineEditWithEye*>(ctrl)->edit()->text().trimmed().toLongLong(&ok);
+                if (ok)
+                    obs_data_set_int(data, name.c_str(), val);
                 break;
             }
             case OBS_PROPERTY_FLOAT:
             {
-                try {
-                    auto val = tostdu8(static_cast<QLineEditWithEye*>(ctrl)->edit()->text());
-                    obs_data_set_int(data, name.c_str(), std::stod(val));
-                } catch(...) {
-                }
+                bool ok = false;
+                auto val = QLocale::c().toDouble(static_cast<QLineEditWithEye*>(ctrl)->edit()->text().trimmed(), &ok);
+                if (ok)
+                    obs_data_set_double(data, name.c_str(), val);
                 break;
             }
             case OBS_PROPERTY_TEXT:
