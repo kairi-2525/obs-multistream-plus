@@ -13,9 +13,16 @@ include(helpers)
 
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
-list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-studio-32.2.1/build_x64/libobs)
-list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-studio-32.2.1/build_x64/deps/w32-pthreads)
-list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-studio-32.2.1/build_x64/UI/obs-frontend-api)
+# OBS Studio sources are extracted to .deps/obs-studio-<version> (see cmake/common/buildspec_common.cmake),
+# so take the version from buildspec.json instead of hardcoding it here.
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/buildspec.json" _buildspec)
+string(JSON _obs_studio_version GET "${_buildspec}" dependencies obs-studio version)
+set(_obs_studio_source_dir "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-studio-${_obs_studio_version}")
+unset(_buildspec)
+
+list(APPEND CMAKE_PREFIX_PATH ${_obs_studio_source_dir}/build_x64/libobs)
+list(APPEND CMAKE_PREFIX_PATH ${_obs_studio_source_dir}/build_x64/deps/w32-pthreads)
+list(APPEND CMAKE_PREFIX_PATH ${_obs_studio_source_dir}/build_x64/frontend/api)
 
 find_package(libobs REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
@@ -61,7 +68,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
   ./dep/nlohmann-json
-  .deps/obs-studio-32.2.1/libobs
+  ${_obs_studio_source_dir}/libobs
 )
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

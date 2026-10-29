@@ -11,8 +11,8 @@ OBS 官方源码在
 维护 Flatpak 清单。当前清单的关键设置如下：
 
 - 应用 ID 为 `com.obsproject.Studio`。
-- 基础运行时和 SDK 分别为 `org.freedesktop.Platform//25.08` 与
-  `org.freedesktop.Sdk//25.08`。`25.08` 是 Freedesktop 运行时分支，不是 OBS
+- 基础运行时和 SDK 分别为 `org.freedesktop.Platform//26.08` 与
+  `org.freedesktop.Sdk//26.08`。`26.08` 是 Freedesktop 运行时分支，不是 OBS
   版本。
 - OBS 声明了 `com.obsproject.Studio.Plugin` 扩展点，扩展根目录是
   `/app/plugins`。
@@ -56,7 +56,7 @@ wsl -e sh -lc 'flatpak --user install -y flathub com.obsproject.Studio'
 ```
 
 `flatpak-builder --install-deps-from=flathub` 会按清单自动安装缺少的
-`org.freedesktop.Sdk//25.08`。OBS 和 SDK 应保持同一基础运行时分支；OBS 官方更新
+`org.freedesktop.Sdk//26.08`。OBS 和 SDK 应保持同一基础运行时分支；OBS 官方更新
 该分支时，也要同步修改插件清单中的 `sdk`。
 
 ## 构建 bundle
@@ -83,7 +83,7 @@ wsl -e bash /mnt/d/dev/obs-dev/obs-multi-rtmp/flatpak/build.sh
 
 `.github/workflows/build-project.yaml` 中的 `flatpak-build` 是独立 job，不加入
 Ubuntu 24.04/26.04 的原生包矩阵。它运行在 Flathub 的
-`freedesktop-25.08` 特权容器中，并使用固定 commit 的
+`freedesktop-26.08` 特权容器中，并使用固定 commit 的
 `flatpak-github-actions/flatpak-builder` action 构建本清单。
 
 该 action 会识别清单中的 `build-extension: true`，用 `--runtime` 生成插件扩展
