@@ -72,6 +72,7 @@ jobs:
           fi
 
   macos-build:
+    if: false
     name: Build for macOS 🍏
     runs-on: macos-26
     needs: check-event
@@ -182,6 +183,7 @@ jobs:
           key: ${{ runner.os }}-xcode-${{ needs.check-event.outputs.config }}
 
   flatpak-build:
+    if: false
     name: Build Flatpak 📦
     runs-on: ubuntu-24.04
     needs: check-event
@@ -225,6 +227,7 @@ jobs:
           path: ${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-flatpak-x86_64.flatpak
 
   ubuntu-build:
+    if: false
     name: Build for Ubuntu 🐧
     strategy:
       matrix:
@@ -310,6 +313,24 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: TEMP probe NSIS
+        shell: pwsh
+        run: |
+          $cmd = Get-Command makensis -ErrorAction SilentlyContinue
+          $before = if ($cmd) { (& makensis /VERSION) 2>&1 } else { 'not found' }
+          Write-Output "::notice title=nsis-before::$before at $($cmd.Source)"
+          $installed = (choco list nsis --exact --limit-output) 2>&1
+          Write-Output "::notice title=choco-installed::$installed"
+          $avail = (choco search nsis --exact --all-versions --limit-output) 2>&1 | Select-Object -First 6
+          Write-Output "::notice title=choco-available::$($avail -join ' ')"
+          $wg = Get-Command winget -ErrorAction SilentlyContinue
+          Write-Output "::notice title=winget::$($wg.Source)"
+          choco upgrade nsis -y --no-progress --version 3.12 *> choco.log
+          Write-Output "::notice title=choco-upgrade::$((Get-Content choco.log | Select-Object -Last 4) -join ' | ')"
+          $after = (& makensis /VERSION) 2>&1
+          Write-Output "::notice title=nsis-after::$after at $((Get-Command makensis).Source)"
+          exit 1
 
       - name: Set Up Environment 🔧
         id: setup
