@@ -332,6 +332,18 @@ jobs:
           target: x64
           config: ${{ needs.check-event.outputs.config }}
 
+      - name: Update NSIS 📦
+        run: |
+          # Update NSIS 📦
+          # The runner image ships NSIS 3.10. Installers built with NSIS before 3.12 are affected by
+          # CVE-2026-42171 (privilege escalation when run as SYSTEM), and before 3.11 by CVE-2025-43715.
+          choco upgrade nsis -y --no-progress --version 3.13.0
+          if ( $LASTEXITCODE -ne 0 ) { throw "Updating NSIS failed (exit code $LASTEXITCODE)" }
+
+          $Version = (& makensis /VERSION).Trim().TrimStart('v')
+          if ( [version]$Version -lt [version]'3.12' ) { throw "NSIS $Version is older than 3.12" }
+          Write-Output "Using NSIS $Version"
+
       - name: Package Plugin 📀
         uses: ./.github/actions/package-plugin
         with:
