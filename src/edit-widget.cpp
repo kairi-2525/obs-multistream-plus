@@ -156,6 +156,12 @@ class EditOutputWidgetImpl: public EditOutputWidget
     std::string targetid_;
     OutputTargetConfigPtr config_ = nullptr;
 
+    // Encoder settings are written to the global lists while editing (when
+    // switching encoders, sharing, or changing the protocol), not only on OK,
+    // so keep copies to put back when the dialog is cancelled.
+    std::list<VideoEncoderConfigPtr> savedVideoConfigs_;
+    std::list<AudioEncoderConfigPtr> savedAudioConfigs_;
+
     QLineEdit* name_ = 0;
     bool resizeToContentPending_ = false;
 
@@ -497,6 +503,16 @@ public:
         , targetid_(targetid)
     {
         auto& global = GlobalMultiOutputConfig();
+        for (auto& x : global.videoConfig)
+            savedVideoConfigs_.push_back(std::make_shared<VideoEncoderConfig>(*x));
+        for (auto& x : global.audioConfig) {
+            auto copy = std::make_shared<AudioEncoderConfig>(*x);
+            copy->audioTracks.clear();
+            for (auto& track : x->audioTracks)
+                copy->audioTracks.push_back(std::make_shared<AudioTrackConfig>(*track));
+            savedAudioConfigs_.push_back(copy);
+        }
+
         config_ = FindById(global.targets, targetid_);
         if (config_ == nullptr) {
             return;
@@ -698,6 +714,14 @@ public:
         LoadConfig();
         ConnectWidgetSignals();
         UpdateUI();
+    }
+
+    void reject() override
+    {
+        auto& global = GlobalMultiOutputConfig();
+        global.videoConfig = savedVideoConfigs_;
+        global.audioConfig = savedAudioConfigs_;
+        QDialog::reject();
     }
 
     void ConnectWidgetSignals()
