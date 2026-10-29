@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "stats-integration.h"
 
 class PushWidget : virtual public QWidget {
 public:
@@ -14,6 +15,8 @@ public:
     // while the target is live also force-stops it.
     virtual bool GetEnabled() = 0;
     virtual void SetEnabled(bool enabled) = 0;
+    // What the row of this target in OBS's own Stats window shows.
+    virtual StatsTargetInfo GetStatsInfo() = 0;
 };
 
 PushWidget* createPushWidget(const std::string& targetId, QWidget* parent = 0);

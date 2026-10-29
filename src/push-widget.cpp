@@ -903,6 +903,16 @@ public:
 
     bool GetEnabled() override { return config_->enabled; }
 
+    StatsTargetInfo GetStatsInfo() override
+    {
+        StatsTargetInfo info;
+        info.id = targetid_;
+        if (config_)
+            info.name = config_->name;
+        info.output = output_;
+        return info;
+    }
+
     void SetEnabled(bool enabled) override
     {
         config_->enabled = enabled;
