@@ -550,6 +550,8 @@ public:
                         auto sublayout = new QHBoxLayout();
                         sublayout->addWidget(v_share_notify_ = new QLabel(gp), 1);
                         auto shareButton = new QPushButton(obs_module_text("Btn.EncoderShare"), gp);
+                        // Enter in a field must confirm the dialog, not open this menu.
+                        shareButton->setAutoDefault(false);
                         sublayout->addWidget(shareButton);
                         encLayout->addLayout(sublayout, currow, curcol++, 1, 2);
 
@@ -602,6 +604,7 @@ public:
                         auto sublayout = new QHBoxLayout();
                         sublayout->addWidget(a_share_notify_ = new QLabel(gp), 1);
                         auto shareButton = new QPushButton(obs_module_text("Btn.EncoderShare"), gp);
+                        shareButton->setAutoDefault(false);
                         sublayout->addWidget(shareButton);
                         encLayout->addLayout(sublayout, currow, curcol++, 1, 2);
 
@@ -661,6 +664,7 @@ public:
         ++currow;
         {
             auto okbtn = new QPushButton(obs_module_text("OK"), container_);
+            okbtn->setDefault(true);
             QObject::connect(okbtn, &QPushButton::clicked, [this]() {
                 SaveConfig();
                 auto& global = GlobalMultiOutputConfig();
