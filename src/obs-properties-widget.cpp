@@ -394,6 +394,10 @@ namespace {
         }
 
         void Save() {
+            // A field still being edited, e.g. when Enter confirms the dialog,
+            // has not been read back by UpdateUI() on losing focus yet.
+            for (auto& x : propwids)
+                x.second->SaveData(settings);
             obs_data_apply(orig_settings, settings);
         }
 
