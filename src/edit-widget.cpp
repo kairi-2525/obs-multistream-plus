@@ -285,11 +285,11 @@ class EditOutputWidgetImpl: public EditOutputWidget
 
 
     void PopupShareMenu(bool isAudio) {
-        auto menu = new QMenu(this);
+        QMenu menu(this);
         auto& global = GlobalMultiOutputConfig();
 
         {
-            auto action = menu->addAction(obs_module_text("NoShare"));
+            auto action = menu.addAction(obs_module_text("NoShare"));
             QObject::connect(action, &QAction::triggered, [=]() {
                 auto& global = GlobalMultiOutputConfig();
                 if (isAudio) {
@@ -343,7 +343,7 @@ class EditOutputWidgetImpl: public EditOutputWidget
         }
 
         for (auto& item : items) {
-            auto action = menu->addAction(QString::fromUtf8(item.second));
+            auto action = menu.addAction(QString::fromUtf8(item.second));
             QObject::connect(action, &QAction::triggered, [=]() {
                 if (isAudio)
                     config_->audioConfig = item.first;
@@ -352,7 +352,7 @@ class EditOutputWidgetImpl: public EditOutputWidget
             });
         }
 
-        menu->exec(QCursor::pos());
+        menu.exec(QCursor::pos());
     }
 
     void RefreshContentGeometry() {

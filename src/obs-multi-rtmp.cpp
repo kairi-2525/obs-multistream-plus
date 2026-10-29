@@ -280,6 +280,7 @@ public:
                 layout->addWidget(tab, 1, 0);
                 donateWnd->setLayout(layout);
                 donateWnd->setMinimumWidth(360);
+                donateWnd->setAttribute(Qt::WA_DeleteOnClose);
                 donateWnd->exec();
             });
 
@@ -549,14 +550,14 @@ private:
         outputsContainer_->setItemWidget(listItem, pushWidget);
 
         QObject::connect(pushWidget->GetDeleteButton(), &QPushButton::clicked, [this, targetId]() {
-            auto msgbox = new QMessageBox(
+            auto answer = QMessageBox(
                 QMessageBox::Icon::Question,
                 obs_module_text("Question.Title"),
                 obs_module_text("Question.Delete"),
                 QMessageBox::Yes | QMessageBox::No,
                 this
-            );
-            if (msgbox->exec() != QMessageBox::Yes) {
+            ).exec();
+            if (answer != QMessageBox::Yes) {
                 return;
             }
             DeletePushWidget(targetId);
