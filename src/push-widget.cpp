@@ -530,13 +530,12 @@ class PushWidgetImpl : public PushWidget, public IOBSOutputEventHanlder
         }
 
         if (!aenc || !venc) {
-            auto msgbox = new QMessageBox(QMessageBox::Icon::Critical, 
-                obs_module_text("Notice.Title"), 
+            QMessageBox(QMessageBox::Icon::Critical,
+                obs_module_text("Notice.Title"),
                 obs_module_text("Notice.GetEncoder"),
                 QMessageBox::StandardButton::Ok,
                 this
-                );
-            msgbox->exec();
+                ).exec();
             return false;
         }
 
