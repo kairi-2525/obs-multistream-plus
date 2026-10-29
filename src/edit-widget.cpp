@@ -519,7 +519,7 @@ public:
 
         int currow = 0;
         {
-            auto sublayout = new QGridLayout(container_);
+            auto sublayout = new QGridLayout();
             sublayout->setColumnStretch(0, 0);
             sublayout->setColumnStretch(1, 1);
             sublayout->addWidget(new QLabel(obs_module_text("StreamingName"), container_), 0, 0);

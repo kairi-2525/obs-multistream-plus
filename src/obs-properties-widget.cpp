@@ -136,6 +136,7 @@ namespace {
                 }
                 
                 default:
+                    blog(LOG_INFO, "Property \"%s\" of type %d is not supported", name.c_str(), propType);
                     ctrl = new QLabel("Unsupported", parent);
                     break;
             }
@@ -177,9 +178,10 @@ namespace {
                                 data = LoadCString(obs_property_list_item_string(p, i));
                             cb->addItem(LoadCString(itemname), data);
                         }
+                        break;
                     }
                     default:
-                        blog(LOG_WARNING, "ReloadProperty did not handle property of type %d", propType);
+                        // Only list items can change; other types have nothing to reload.
                         break;
                 }
             }
@@ -228,7 +230,7 @@ namespace {
                 break;
             }
             default:
-                blog(LOG_ERROR, "Unsupported property type %d", propType);
+                // Reported once when the widget was created.
                 break;
             }
         }
@@ -279,7 +281,7 @@ namespace {
                 break;
             }
             default:
-                blog(LOG_ERROR, "Unsupported property type %d", propType);
+                // Reported once when the widget was created.
                 break;
             }
         }
