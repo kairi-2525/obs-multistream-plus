@@ -18,6 +18,11 @@
 !README.md
 !FLATPAK.md
 
+# Shared Claude Code project settings (personal settings.local.json stays ignored)
+!/.claude
+/.claude/*
+!/.claude/settings.json
+
 # Exclude lock files
 *.lock.json
 
