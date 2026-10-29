@@ -13,6 +13,7 @@
 #include "push-widget.h"
 #include "plugin-support.h"
 #include "stats-integration.h"
+#include "helpers.h"
 
 #include "output-config.h"
 
@@ -567,6 +568,12 @@ private:
     }
 };
 
+#define START_ALL_HOTKEY_NAME "obs-multi-rtmp.start_all"
+#define STOP_ALL_HOTKEY_NAME "obs-multi-rtmp.stop_all"
+
+static obs_hotkey_id s_startAllHotkey = OBS_INVALID_HOTKEY_ID;
+static obs_hotkey_id s_stopAllHotkey = OBS_INVALID_HOTKEY_ID;
+
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE("obs-multi-rtmp", "en-US")
 OBS_MODULE_AUTHOR("雷鳴 (@sorayukinoyume)")
@@ -588,8 +595,8 @@ bool obs_module_load()
         return false;
     }
 
-    obs_hotkey_register_frontend(
-        "obs-multi-rtmp.start_all",
+    s_startAllHotkey = obs_hotkey_register_frontend(
+        START_ALL_HOTKEY_NAME,
         obs_module_text("Hotkey.StartAllTargets"),
         [](void* private_data, obs_hotkey_id, obs_hotkey_t*, bool pressed) {
             auto dock = static_cast<MultiOutputWidget*>(private_data);
@@ -600,8 +607,8 @@ bool obs_module_load()
         },
         dock
     );
-    obs_hotkey_register_frontend(
-        "obs-multi-rtmp.stop_all",
+    s_stopAllHotkey = obs_hotkey_register_frontend(
+        STOP_ALL_HOTKEY_NAME,
         obs_module_text("Hotkey.StopAllTargets"),
         [](void* private_data, obs_hotkey_id, obs_hotkey_t*, bool pressed) {
             auto dock = static_cast<MultiOutputWidget*>(private_data);
@@ -612,6 +619,8 @@ bool obs_module_load()
         },
         dock
     );
+    LoadHotkeyBindings(s_startAllHotkey, START_ALL_HOTKEY_NAME);
+    LoadHotkeyBindings(s_stopAllHotkey, STOP_ALL_HOTKEY_NAME);
 
     InstallStatsIntegration([dock = QPointer<MultiOutputWidget>(dock)]() {
         std::vector<StatsTargetInfo> targets;
@@ -638,6 +647,9 @@ bool obs_module_load()
             }
             else if (event == obs_frontend_event::OBS_FRONTEND_EVENT_PROFILE_CHANGED)
             {
+                // Hotkey bindings are saved per profile.
+                LoadHotkeyBindings(s_startAllHotkey, START_ALL_HOTKEY_NAME);
+                LoadHotkeyBindings(s_stopAllHotkey, STOP_ALL_HOTKEY_NAME);
                 dock->LoadConfig();
             }
         }, dock
