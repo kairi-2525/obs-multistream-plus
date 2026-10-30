@@ -7,6 +7,9 @@ public:
     virtual bool ShowEditDlg() = 0;
     virtual void StartStreaming() = 0;
     virtual void StopStreaming() = 0;
+    // Stops right away, without asking to drop the stream delay like
+    // StopStreaming() does.
+    virtual void Stop() = 0;
     virtual bool IsRunning() = 0;
     virtual void OnOBSEvent(obs_frontend_event ev) = 0;
     virtual QPushButton* GetDeleteButton() = 0;

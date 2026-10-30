@@ -1,9 +1,12 @@
 ﻿#include "pch.h"
 
+#include <atomic>
+#include <chrono>
 #include <list>
 #include <regex>
 #include <filesystem>
 #include <unordered_map>
+#include <utility>
 
 #include <QFileDialog>
 #include <QFile>
@@ -41,6 +44,15 @@ public:
 
 GlobalService& GetGlobalService() {
     return s_service;
+}
+
+
+// Set whenever OBS applies its video settings (libobs' "video_reset" signal).
+static std::atomic_bool s_videoReset = false;
+
+static void OnVideoReset(void*, calldata_t*)
+{
+    s_videoReset = true;
 }
 
 
@@ -504,6 +516,46 @@ public:
         }
     }
 
+    // How OBS 30 to 33 change profiles (OBSBasic_Profiles.cpp):
+    //   switch, remove current: CHANGING, then CHANGED after resetting video
+    //   new:                    LIST_CHANGED, then CHANGED after resetting video
+    //   rename, duplicate:      LIST_CHANGED, then CHANGED without a reset; the
+    //                           new current profile is a copy of the old one
+    //   delete another:         LIST_CHANGED only
+    // Resetting video fails while any output is active.
+    void OnProfileChanging()
+    {
+        s_videoReset = false;
+        switchingProfile_ = true;
+        // These targets belong to the profile being left. Stop them before
+        // OBS resets video for the next one.
+        StopTargets();
+    }
+
+    void OnProfileListChanged()
+    {
+        s_videoReset = false;
+    }
+
+    void OnProfileChanged()
+    {
+        bool switched = std::exchange(switchingProfile_, false);
+        if (!switched) {
+            if (CurrentProfileMatchesLoadedConfig()) {
+                blog(LOG_INFO, TAG "Profile renamed or duplicated, targets keep running.");
+                return;
+            }
+            // A new profile, which comes without CHANGING
+            StopTargets();
+        }
+
+        LoadConfig();
+
+        // Targets still live made OBS skip the new profile's video settings.
+        if (!s_videoReset)
+            ApplyVideoSettingsWhenIdle();
+    }
+
 private:
     // Main widget of this module's dock
     QWidget* container_ = 0;
@@ -513,6 +565,39 @@ private:
     QScrollArea scroll_;
     // Widget, that contains output source widgets
     QListWidget* outputsContainer_ = 0;
+    // Between PROFILE_CHANGING and PROFILE_CHANGED
+    bool switchingProfile_ = false;
+    QPointer<QTimer> videoResetTimer_;
+
+    void StopTargets()
+    {
+        for (auto x : GetAllPushWidgets())
+            x->Stop();
+    }
+
+    // Outputs stop asynchronously. Reset video for the current profile once
+    // nothing uses it anymore, unless OBS gets to it first.
+    void ApplyVideoSettingsWhenIdle()
+    {
+        if (videoResetTimer_)
+            return;
+
+        auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        videoResetTimer_ = new QTimer(this);
+        QObject::connect(videoResetTimer_, &QTimer::timeout, this, [this, deadline]() {
+            if (!s_videoReset && obs_video_active() && std::chrono::steady_clock::now() < deadline)
+                return;
+
+            videoResetTimer_->stop();
+            videoResetTimer_->deleteLater();
+            videoResetTimer_ = nullptr;
+            if (!s_videoReset && !obs_video_active()) {
+                blog(LOG_INFO, TAG "Applying the profile's video settings now that targets have stopped.");
+                obs_frontend_reset_video();
+            }
+        });
+        videoResetTimer_->start(100);
+    }
 
     void DeletePushWidget(const std::string& targetId)
     {
@@ -646,21 +731,32 @@ bool obs_module_load()
                 UninstallStatsIntegration();
                 dock->SaveConfig();
             }
+            else if (event == obs_frontend_event::OBS_FRONTEND_EVENT_PROFILE_CHANGING)
+            {
+                dock->OnProfileChanging();
+            }
+            else if (event == obs_frontend_event::OBS_FRONTEND_EVENT_PROFILE_LIST_CHANGED)
+            {
+                dock->OnProfileListChanged();
+            }
             else if (event == obs_frontend_event::OBS_FRONTEND_EVENT_PROFILE_CHANGED)
             {
                 // Hotkey bindings are saved per profile.
                 LoadHotkeyBindings(s_startAllHotkey, START_ALL_HOTKEY_NAME);
                 LoadHotkeyBindings(s_stopAllHotkey, STOP_ALL_HOTKEY_NAME);
-                dock->LoadConfig();
+                dock->OnProfileChanged();
             }
         }, dock
     );
+
+    signal_handler_connect(obs_get_signal_handler(), "video_reset", OnVideoReset, nullptr);
 
     return true;
 }
 
 void obs_module_unload()
 {
+    signal_handler_disconnect(obs_get_signal_handler(), "video_reset", OnVideoReset, nullptr);
     UninstallStatsIntegration();
 }
 
