@@ -79,6 +79,11 @@ void SaveMultiOutputConfig();
 
 bool LoadMultiOutputConfig();
 
+// True when the current profile's saved config has the same targets and
+// encoder settings as the loaded one, as right after OBS renames or
+// duplicates a profile by copying its folder.
+bool CurrentProfileMatchesLoadedConfig();
+
 std::string GenerateId(MultiOutputConfig& config);
 
 // Used by the dock's Export/Import Config buttons to back up or restore

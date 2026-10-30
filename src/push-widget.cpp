@@ -868,10 +868,9 @@ public:
    
     void OnOBSEvent(obs_frontend_event ev) override
     {
-        if (ev == obs_frontend_event::OBS_FRONTEND_EVENT_EXIT
-            || ev == obs_frontend_event::OBS_FRONTEND_EVENT_PROFILE_CHANGED
-            || ev == obs_frontend_event::OBS_FRONTEND_EVENT_PROFILE_LIST_CHANGED
-        ) {
+        // Profile changes are handled by the dock, which stops targets only
+        // when they don't carry over to the next profile.
+        if (ev == obs_frontend_event::OBS_FRONTEND_EVENT_EXIT) {
             Stop();
         } else if (ev == obs_frontend_event::OBS_FRONTEND_EVENT_STREAMING_STARTING) {
             if (!IsRunning() && config_->syncStart) {
@@ -938,7 +937,7 @@ public:
         StartStreaming();
     }
 
-    void Stop()
+    void Stop() override
     {
         if (IsRunning())
         {
