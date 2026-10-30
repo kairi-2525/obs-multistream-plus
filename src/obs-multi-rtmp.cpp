@@ -516,7 +516,7 @@ public:
         }
     }
 
-    // How OBS 30 to 33 change profiles (OBSBasic_Profiles.cpp):
+    // How OBS 31 to 33 change profiles (OBSBasic_Profiles.cpp):
     //   switch, remove current: CHANGING, then CHANGED after resetting video
     //   new:                    LIST_CHANGED, then CHANGED after resetting video
     //   rename, duplicate:      LIST_CHANGED, then CHANGED without a reset; the
