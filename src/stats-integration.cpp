@@ -6,6 +6,7 @@
 #include <QApplication>
 #include <QGridLayout>
 #include <QPointer>
+#include <QProperty>
 
 #include <util/platform.h>
 
@@ -85,6 +86,8 @@ class StatsRows final : public QObject
     StatsTargetProvider provider_;
     int firstRow_ = 0;
     std::vector<Row> rows_;
+    QPropertyNotifier resetNotifier_;
+    bool showing_ = false;
 
 public:
     StatsRows(QWidget* stats, QGridLayout* grid, StatsTargetProvider provider)
@@ -105,21 +108,31 @@ public:
                 break;
             }
         }
-        if (!refreshTimer) {
+        if (refreshTimer) {
+            // OBSBasicStats::Reset(), called by the Reset button and by the
+            // Reset Stats hotkey, starts this timer. So does showEvent(),
+            // which is not a reset and may be about to run.
+            resetNotifier_ = refreshTimer->bindableActive().addNotifier([this, refreshTimer]() {
+                if (refreshTimer->isActive() && !showing_)
+                    Reset();
+            });
+            stats->installEventFilter(this);
+            IgnoreTimerStartsWhileShowing();
+        } else {
             refreshTimer = new QTimer(this);
             refreshTimer->setInterval(kStatsRefreshInterval);
             refreshTimer->start();
+
+            const QString resetText = FrontendText("Reset");
+            for (auto button : stats->findChildren<QPushButton*>()) {
+                if (button->text() == resetText)
+                    QObject::connect(button, &QPushButton::clicked, this, [this]() { Reset(); });
+            }
         }
         QObject::connect(refreshTimer, &QTimer::timeout, this, [this]() {
             if (stats_ && stats_->isVisible())
                 Update();
         });
-
-        const QString resetText = FrontendText("Reset");
-        for (auto button : stats->findChildren<QPushButton*>()) {
-            if (button->text() == resetText)
-                QObject::connect(button, &QPushButton::clicked, this, [this]() { Reset(); });
-        }
 
         Update();
     }
@@ -140,7 +153,7 @@ public:
             UpdateRow(rows_[i], targets[i].output);
     }
 
-    // Mirrors the Stats window's Reset button for the dropped frames column.
+    // Mirrors OBSBasicStats::Reset() for the dropped frames column.
     void Reset()
     {
         if (!grid_)
@@ -159,7 +172,22 @@ public:
         Update();
     }
 
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        if (watched == stats_ && event->type() == QEvent::Show)
+            IgnoreTimerStartsWhileShowing();
+        return false;
+    }
+
 private:
+    // Show events are filtered before the window's showEvent() runs.
+    void IgnoreTimerStartsWhileShowing()
+    {
+        showing_ = true;
+        QTimer::singleShot(0, this, [this]() { showing_ = false; });
+    }
+
     static QString DisplayName(const StatsTargetInfo& target)
     {
         if (target.name.empty())
@@ -312,7 +340,8 @@ private:
 
 // Both the View > Stats window (created on demand, without a parent) and the
 // Stats dock are OBSBasicStats instances, so new ones are picked up as they
-// are shown.
+// are shown. The dock is also picked up while hidden, as the Reset Stats
+// hotkey resets it anyway.
 class StatsWindowWatcher final : public QObject
 {
     StatsTargetProvider provider_;
@@ -352,7 +381,10 @@ public:
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override
     {
-        if (event->type() == QEvent::Show && watched->isWidgetType() && watched->inherits("OBSBasicStats"))
+        // Every widget gets one PolishRequest after it has been constructed.
+        auto type = event->type();
+        if ((type == QEvent::Show || type == QEvent::PolishRequest) && watched->isWidgetType()
+            && watched->inherits("OBSBasicStats"))
             Attach(static_cast<QWidget*>(watched));
         return false;
     }
